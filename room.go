@@ -32,6 +32,10 @@ func (m *RoomMap) Load(key int) (*Room, error) {
 	return r, nil
 }
 
+func (m *RoomMap) Delete(key int) {
+	m.m.Delete(key)
+}
+
 type Room struct {
 	id           int
 	users        map[*User]bool
@@ -53,15 +57,23 @@ func newRoom(id int) *Room {
 }
 
 func (r *Room) run() {
+loop:
 	for {
 		select {
 		case user := <-r.registerCh:
 			r.users[user] = true
+
 		case user := <-r.unregisterCh:
-			if _, ok := r.users[user]; ok {
-				delete(r.users, user)
-				close(user.sendCh)
+			if _, ok := r.users[user]; !ok {
+				continue loop
 			}
+			delete(r.users, user)
+			close(user.sendCh)
+			if len(r.users) == 0 {
+				rooms.Delete(r.id)
+				break loop
+			}
+
 		case drawInfo := <-r.broadcastCh:
 			for user := range r.users {
 				if user == drawInfo.user {
@@ -74,6 +86,7 @@ func (r *Room) run() {
 					close(user.sendCh)
 				}
 			}
+
 		}
 	}
 }
