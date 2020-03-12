@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outDir": "./public",
+    "sourceMap": true,
+    "target": "es5",
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true
+  }
+}
