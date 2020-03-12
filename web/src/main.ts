@@ -158,14 +158,31 @@ const generateRoomId = (): number => {
     return Math.floor(Math.random() * 1000000)
 };
 
+const moveToRoom = (roomId: string) => {
+    const url = new URL(document.location.toString());
+    url.searchParams.set('r', roomId);
+    window.location.href = url.toString();
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const url = new URL(document.location.toString());
     const roomId = url.searchParams.get('r');
     if (!roomId) {
         console.log('roomId is not set!');
+        moveToRoom(String(generateRoomId()));
         url.searchParams.set('r', String(generateRoomId()));
         window.location.href = url.toString();
         return;
     }
+
+    document.getElementById('change-room-btn').addEventListener('click', () => {
+        (document.getElementById('change-room-dialog') as HTMLDialogElement).showModal();
+    });
+
+    document.getElementById('change-room-dialog-go-btn').addEventListener('click', () => {
+        const roomId = (document.getElementById('change-room-dialog-input') as HTMLInputElement).value;
+        moveToRoom(roomId);
+    });
+
     new SyncCanvas();
 });

@@ -118,15 +118,28 @@ var SyncCanvas = /** @class */ (function () {
 var generateRoomId = function () {
     return Math.floor(Math.random() * 1000000);
 };
+var moveToRoom = function (roomId) {
+    var url = new URL(document.location.toString());
+    url.searchParams.set('r', roomId);
+    window.location.href = url.toString();
+};
 document.addEventListener('DOMContentLoaded', function () {
     var url = new URL(document.location.toString());
     var roomId = url.searchParams.get('r');
     if (!roomId) {
         console.log('roomId is not set!');
+        moveToRoom(String(generateRoomId()));
         url.searchParams.set('r', String(generateRoomId()));
         window.location.href = url.toString();
         return;
     }
+    document.getElementById('change-room-btn').addEventListener('click', function () {
+        document.getElementById('change-room-dialog').showModal();
+    });
+    document.getElementById('change-room-dialog-go-btn').addEventListener('click', function () {
+        var roomId = document.getElementById('change-room-dialog-input').value;
+        moveToRoom(roomId);
+    });
     new SyncCanvas();
 });
 //# sourceMappingURL=main.js.map
