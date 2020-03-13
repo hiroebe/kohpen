@@ -1,6 +1,16 @@
 import dialogPolyfill from 'dialog-polyfill';
 import 'dialog-polyfill/dist/dialog-polyfill.css';
 
+const colors = [
+    '#000000',
+    '#ff0000',
+    '#00ff00',
+    '#0000ff',
+    '#ffff00',
+    '#ff00ff',
+    '#00ffff',
+];
+
 interface Pos {
     x: number;
     y: number;
@@ -16,6 +26,7 @@ class SyncCanvas {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private socket: WebSocket;
+    private color: string;
     private mouseX: number;
     private mouseY: number;
     private isMouseDown: boolean;
@@ -24,15 +35,18 @@ class SyncCanvas {
         this.canvas = this.setupCanvas();
         this.ctx = this.setupCanvasContext();
         this.socket = this.setupWebSocket();
+        this.color = colors[0];
         this.mouseX = 0;
         this.mouseY = 0;
         this.isMouseDown = false;
+
+        this.setupColorPalette();
     }
 
     private setupCanvas(): HTMLCanvasElement {
-        const canvas = document.getElementsByTagName('canvas')[0];
+        const canvas = document.querySelector('canvas');
 
-        const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+        const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8);
         canvas.width = size;
         canvas.height = size;
 
@@ -71,12 +85,24 @@ class SyncCanvas {
             console.log('disconnected');
         });
         sock.addEventListener('message', (e: MessageEvent) => {
-            console.log(e);
             const drawInfo = JSON.parse(e.data);
             this.draw(drawInfo);
         });
 
         return sock;
+    }
+
+    private setupColorPalette() {
+        const container = document.getElementById('color-palette');
+        for (const color of colors) {
+            const div = document.createElement('div');
+            div.className = 'color-palette-button';
+            div.style.backgroundColor = color;
+            div.onclick = () => {
+                this.color = color;
+            };
+            container.appendChild(div);
+        }
     }
 
     private drawAndSend(info: DrawInfo) {
@@ -96,7 +122,7 @@ class SyncCanvas {
 
     private onDrawStart(x: number, y: number) {
         this.drawAndSend({
-            color: '#ff0000',
+            color: this.color,
             start: {
                 x: x / this.canvas.width,
                 y: y / this.canvas.height,
@@ -113,7 +139,7 @@ class SyncCanvas {
 
     private onDrawMove(x: number, y: number) {
         this.drawAndSend({
-            color: '#ff0000',
+            color: this.color,
             start: {
                 x: this.mouseX / this.canvas.width,
                 y: this.mouseY / this.canvas.height,
@@ -135,14 +161,14 @@ class SyncCanvas {
         e.preventDefault();
 
         const touch = e.touches[0];
-        this.onDrawStart(touch.pageX, touch.pageY);
+        this.onDrawStart(touch.clientX - this.canvas.offsetLeft, touch.clientY - this.canvas.offsetTop);
     }
 
     private onTouchMove(e: TouchEvent) {
         e.preventDefault();
 
         const touch = e.touches[0];
-        this.onDrawMove(touch.pageX, touch.pageY);
+        this.onDrawMove(touch.clientX - this.canvas.offsetLeft, touch.clientY - this.canvas.offsetTop);
     }
 
     private onMouseDown(e: MouseEvent) {
@@ -167,17 +193,7 @@ const moveToRoom = (roomId: string) => {
     window.location.href = url.toString();
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    const url = new URL(document.location.toString());
-    const roomId = url.searchParams.get('r');
-    if (!roomId) {
-        console.log('roomId is not set!');
-        moveToRoom(String(generateRoomId()));
-        url.searchParams.set('r', String(generateRoomId()));
-        window.location.href = url.toString();
-        return;
-    }
-
+const setupDialog = () => {
     const dialog = document.getElementById('change-room-dialog') as HTMLDialogElement;
     dialogPolyfill.registerDialog(dialog);
 
@@ -189,6 +205,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const roomId = (document.getElementById('change-room-dialog-input') as HTMLInputElement).value;
         moveToRoom(roomId);
     });
+
+    document.getElementById('change-room-dialog-cancel-btn').addEventListener('click', () => {
+        dialog.close();
+    });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const url = new URL(document.location.toString());
+    const roomId = url.searchParams.get('r');
+    if (!roomId) {
+        console.log('roomId is not set!');
+        moveToRoom(String(generateRoomId()));
+        url.searchParams.set('r', String(generateRoomId()));
+        window.location.href = url.toString();
+        return;
+    }
+    document.getElementById('room-id').textContent = roomId;
+
+    setupDialog();
 
     new SyncCanvas();
 });
