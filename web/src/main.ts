@@ -1,3 +1,6 @@
+import dialogPolyfill from 'dialog-polyfill';
+import 'dialog-polyfill/dist/dialog-polyfill.css';
+
 interface Pos {
     x: number;
     y: number;
@@ -175,8 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    const dialog = document.getElementById('change-room-dialog') as HTMLDialogElement;
+    dialogPolyfill.registerDialog(dialog);
+
     document.getElementById('change-room-btn').addEventListener('click', () => {
-        (document.getElementById('change-room-dialog') as HTMLDialogElement).showModal();
+        dialog.showModal();
     });
 
     document.getElementById('change-room-dialog-go-btn').addEventListener('click', () => {

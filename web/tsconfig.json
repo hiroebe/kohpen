@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "outDir": "./public",
     "sourceMap": true,
     "target": "es5",
-    "module": "commonjs",
+    "module": "es2015",
+    "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true
