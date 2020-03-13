@@ -11,7 +11,7 @@ interface DrawInfo {
 }
 
 export default class SyncCanvas {
-    public element: HTMLCanvasElement;
+    private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private socket: WebSocket;
     private color: string;
@@ -19,8 +19,8 @@ export default class SyncCanvas {
     private mouseY: number;
     private isMouseDown: boolean;
 
-    constructor(private canvasSize: number, private drawable: boolean) {
-        this.element = this.setupCanvas();
+    constructor(private roomId: string, private canvasSize: number, private drawable: boolean) {
+        this.canvas = this.setupCanvas();
         this.ctx = this.setupCanvasContext();
         this.socket = this.setupWebSocket();
         this.color = 'black';
@@ -29,19 +29,27 @@ export default class SyncCanvas {
         this.isMouseDown = false;
     }
 
-    public resize(size: number) {
+    get element(): HTMLCanvasElement {
+        return this.canvas;
+    }
+
+    close() {
+        this.socket.close();
+    }
+
+    resize(size: number) {
         this.canvasSize = size;
-        this.element.width = size;
-        this.element.height = size;
+        this.canvas.width = size;
+        this.canvas.height = size;
 
         this.ctx = this.setupCanvasContext();
     }
 
-    public setColor(color: string) {
+    setColor(color: string) {
         this.color = color;
     }
 
-    public clearCanvas() {
+    clearCanvas() {
         this.drawAndSend({ method: 'clear' });
     }
 
@@ -66,7 +74,7 @@ export default class SyncCanvas {
     }
 
     private setupCanvasContext(): CanvasRenderingContext2D {
-        const ctx = this.element.getContext('2d', { alpha: false });
+        const ctx = this.canvas.getContext('2d', { alpha: false });
 
         ctx.lineCap = 'round';
         ctx.lineWidth = 4;
@@ -77,9 +85,11 @@ export default class SyncCanvas {
     }
 
     private setupWebSocket(): WebSocket {
-        const loc = window.location;
-        let proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-        const sock = new WebSocket(proto + loc.host + '/ws' + loc.search);
+        let proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const url = new URL(proto + window.location.host + '/ws');
+        url.searchParams.set('r', this.roomId);
+
+        const sock = new WebSocket(url.toString());
 
         sock.addEventListener('open', () => {
             console.log('connected');
@@ -162,14 +172,14 @@ export default class SyncCanvas {
         e.preventDefault();
 
         const touch = e.touches[0];
-        this.onDrawStart(touch.clientX - this.element.offsetLeft, touch.clientY - this.element.offsetTop);
+        this.onDrawStart(touch.clientX - this.canvas.offsetLeft, touch.clientY - this.canvas.offsetTop);
     }
 
     private onTouchMove(e: TouchEvent) {
         e.preventDefault();
 
         const touch = e.touches[0];
-        this.onDrawMove(touch.clientX - this.element.offsetLeft, touch.clientY - this.element.offsetTop);
+        this.onDrawMove(touch.clientX - this.canvas.offsetLeft, touch.clientY - this.canvas.offsetTop);
     }
 
     private onMouseDown(e: MouseEvent) {

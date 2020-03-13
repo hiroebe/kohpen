@@ -1,9 +1,12 @@
 module.exports = {
     mode: 'development',
-    entry: `${__dirname}/src/main.ts`,
+    entry: {
+        'main': `${__dirname}/src/main.ts`,
+        'viewer': `${__dirname}/src/viewer.ts`,
+    },
     output: {
         path: `${__dirname}/public`,
-        filename: 'main.js',
+        filename: '[name].js',
     },
     module: {
         rules: [

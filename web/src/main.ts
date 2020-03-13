@@ -1,5 +1,4 @@
-import dialogPolyfill from 'dialog-polyfill';
-import 'dialog-polyfill/dist/dialog-polyfill.css';
+import DialogWithInput from './dialogWithInput';
 import SyncCanvas from './syncCanvas';
 
 const colors = [
@@ -23,20 +22,13 @@ const moveToRoom = (roomId: string) => {
 };
 
 const setupDialog = () => {
-    const dialog = document.getElementById('change-room-dialog') as HTMLDialogElement;
-    dialogPolyfill.registerDialog(dialog);
-
+    const dialog = new DialogWithInput('Room ID: ', 'Go', 'Cancel');
+    dialog.input.type = 'number';
+    dialog.okButton.addEventListener('click', () => {
+        moveToRoom(dialog.input.value);
+    });
     document.getElementById('change-room-btn').addEventListener('click', () => {
         dialog.showModal();
-    });
-
-    document.getElementById('change-room-dialog-go-btn').addEventListener('click', () => {
-        const roomId = (document.getElementById('change-room-dialog-input') as HTMLInputElement).value;
-        moveToRoom(roomId);
-    });
-
-    document.getElementById('change-room-dialog-cancel-btn').addEventListener('click', () => {
-        dialog.close();
     });
 };
 
@@ -74,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('room-id').textContent = roomId;
 
     const canvasSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8);
-    const syncCanvas = new SyncCanvas(canvasSize, true);
+    const syncCanvas = new SyncCanvas(roomId, canvasSize, true);
     document.getElementById('canvas-container').appendChild(syncCanvas.element);
 
     setupDialog();

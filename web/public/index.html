@@ -4,22 +4,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta charset="utf-8" />
   <title>Kohpen</title>
+	<link rel='stylesheet' type="text/css" href="main.css" />
   <script src="main.js"></script>
   <style>
-    html,body {
-      height: 100%;
-      margin-top: 0px;
-      margin-bottom: 0px;
-    }
     canvas {
       border: 1px solid black;
-    }
-    .vertical {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-around;
-      align-items: center;
     }
     .color-palette-button {
       display: inline-block;
@@ -39,6 +28,7 @@
 </head>
 <body>
   <div class="vertical">
+
     <h1>
       Room:<span id="room-id"></span>
       <button id="change-room-btn">Go to another room</button>
@@ -47,15 +37,7 @@
     <div id="canvas-container"></div>
 
     <div id="color-palette"></div>
-  </div>
 
-  <dialog id="change-room-dialog">
-    <form method="dialog">
-      <label for="change-room-dialog-input">Room ID:</label>
-      <input type="tel" id="change-room-dialog-input"></input>
-      <button id="change-room-dialog-go-btn">Go</button>
-      <button id="change-room-dialog-cancel-btn">Cancel</button>
-    </form>
-  </dialog>
+  </div>
 </body>
 </html>
