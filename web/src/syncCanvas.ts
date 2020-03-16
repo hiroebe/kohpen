@@ -1,13 +1,31 @@
-interface Pos {
-    x: number;
-    y: number;
+const moveEventTimeout = 30;
+const sendTimeout = 100;
+
+interface Message {
+    method: 'draw' | 'clear' | 'history-request' | 'history-response';
+    data?: DrawInfo | DrawInfo[];
 }
 
 interface DrawInfo {
-    method: 'draw' | 'clear';
-    color?: string;
-    start?: Pos;
-    end?: Pos;
+    color: string;
+    paths: [Pos, Pos][];
+}
+
+class Pos {
+    x: number;
+    y: number;
+
+    constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    toJSON() {
+        return {
+            x: this.x.toFixed(4),
+            y: this.y.toFixed(4),
+        };
+    }
 }
 
 export default class SyncCanvas {
@@ -18,6 +36,10 @@ export default class SyncCanvas {
     private mouseX: number;
     private mouseY: number;
     private isMouseDown: boolean;
+    private drawHistory: DrawInfo[];
+    private moveEventTimer: number;
+    private sendTimer: number;
+    private sendQueue: [Pos, Pos][];
 
     constructor(private roomId: string, private canvasSize: number, private drawable: boolean) {
         this.canvas = this.setupCanvas();
@@ -27,6 +49,10 @@ export default class SyncCanvas {
         this.mouseX = 0;
         this.mouseY = 0;
         this.isMouseDown = false;
+        this.drawHistory = [];
+        this.moveEventTimer = null;
+        this.sendTimer = null;
+        this.sendQueue = [];
     }
 
     get element(): HTMLCanvasElement {
@@ -46,11 +72,15 @@ export default class SyncCanvas {
     }
 
     setColor(color: string) {
+        this.flushSendQueue();
         this.color = color;
     }
 
     clearCanvas() {
-        this.drawAndSend({ method: 'clear' });
+        this.clear();
+        this.sendMessage({
+            method: 'clear',
+        });
     }
 
     private setupCanvas(): HTMLCanvasElement {
@@ -93,54 +123,105 @@ export default class SyncCanvas {
 
         sock.addEventListener('open', () => {
             console.log('connected');
+            this.sendMessage({ method: 'history-request' });
         });
         sock.addEventListener('close', () => {
             console.log('disconnected');
         });
         sock.addEventListener('message', (e: MessageEvent) => {
-            const drawInfo: DrawInfo = JSON.parse(e.data);
-            this.draw(drawInfo);
+            const message: Message = JSON.parse(e.data);
+            this.handleMessage(message);
         });
 
         return sock;
     }
 
-    private drawAndSend(info: DrawInfo) {
-        this.draw(info);
-        this.socket.send(JSON.stringify(info));
-    }
-
-    private draw(info: DrawInfo) {
-        const { method, color, start, end } = info;
-
-        switch (method) {
+    private handleMessage(message: Message) {
+        console.log(message);
+        switch (message.method) {
             case 'draw':
-                this.ctx.strokeStyle = color;
-                this.ctx.beginPath();
-                this.ctx.moveTo(start.x * this.canvasSize, start.y * this.canvasSize);
-                this.ctx.lineTo(end.x * this.canvasSize, end.y * this.canvasSize);
-                this.ctx.stroke();
+                this.draw(message.data as DrawInfo);
                 break;
 
             case 'clear':
-                this.ctx.fillStyle = 'white';
-                this.ctx.fillRect(0, 0, this.canvasSize, this.canvasSize);
+                this.clear();
+                break;
+
+            case 'history-request':
+                this.flushSendQueue();
+                this.sendMessage({
+                    method: 'history-response',
+                    data: this.drawHistory,
+                });
+                break;
+
+            case 'history-response':
+                for (const drawInfo of (message.data as DrawInfo[])) {
+                    this.draw(drawInfo);
+                }
                 break;
         }
     }
 
-    private onDrawStart(x: number, y: number) {
-        this.drawAndSend({
-            method: 'draw',
+    private sendMessage(message: Message) {
+        this.socket.send(JSON.stringify(message));
+    }
+
+    private drawAndSend(info: DrawInfo) {
+        this.draw(info);
+
+        this.sendQueue.push(...info.paths);
+
+        if (this.sendTimer) {
+            return;
+        }
+
+        this.sendTimer = window.setTimeout(() => {
+            this.flushSendQueue();
+            this.sendTimer = null;
+        }, sendTimeout);
+    }
+
+    private flushSendQueue() {
+        const drawInfo: DrawInfo = {
             color: this.color,
-            start: {
-                x: x / this.canvasSize,
-                y: y / this.canvasSize,
-            },
-            end: {
-                x: x / this.canvasSize,
-                y: y / this.canvasSize,
-            },
+            paths: this.sendQueue,
+        };
+        this.sendMessage({
+            method: 'draw',
+            data: drawInfo,
+        });
+        if (this.drawHistory.length > 0 && this.color === this.drawHistory[this.drawHistory.length - 1].color) {
+            this.drawHistory[this.drawHistory.length - 1].paths.push(...drawInfo.paths);
+        } else {
+            this.drawHistory.push(drawInfo);
+        }
+        this.sendQueue = [];
+    }
+
+    private draw(info: DrawInfo) {
+        this.ctx.strokeStyle = info.color;
+        this.ctx.beginPath();
+        for (const [start, end] of info.paths) {
+            this.ctx.moveTo(start.x * this.canvasSize, start.y * this.canvasSize);
+            this.ctx.lineTo(end.x * this.canvasSize, end.y * this.canvasSize);
+        }
+        this.ctx.stroke();
+    }
+
+    private clear() {
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillRect(0, 0, this.canvasSize, this.canvasSize);
+
+        this.drawHistory = [];
+    }
+
+    private onDrawStart(x: number, y: number) {
+        const start = new Pos(x / this.canvasSize, y / this.canvasSize);
+        const end = new Pos(x / this.canvasSize, y / this.canvasSize);
+        this.drawAndSend({
+            color: this.color,
+            paths: [[start, end]],
         });
         this.isMouseDown = true;
         this.mouseX = x;
@@ -148,20 +229,22 @@ export default class SyncCanvas {
     }
 
     private onDrawMove(x: number, y: number) {
+        if (this.moveEventTimer) {
+            return;
+        }
+
+        const start = new Pos(this.mouseX / this.canvasSize, this.mouseY / this.canvasSize);
+        const end = new Pos(x / this.canvasSize, y / this.canvasSize);
         this.drawAndSend({
-            method: 'draw',
             color: this.color,
-            start: {
-                x: this.mouseX / this.canvasSize,
-                y: this.mouseY / this.canvasSize,
-            },
-            end: {
-                x: x / this.canvasSize,
-                y: y / this.canvasSize,
-            },
+            paths: [[start, end]],
         });
         this.mouseX = x;
         this.mouseY = y;
+
+        this.moveEventTimer = window.setTimeout(() => {
+            this.moveEventTimer = null;
+        }, moveEventTimeout);
     }
 
     private onDrawEnd() {

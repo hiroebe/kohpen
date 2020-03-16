@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,6 +13,8 @@ type User struct {
 	room   *Room
 	conn   *websocket.Conn
 	sendCh chan []byte
+
+	initialized bool
 }
 
 func (u *User) readPump() {
@@ -27,7 +30,13 @@ func (u *User) readPump() {
 			}
 			break
 		}
-		u.room.broadcastCh <- &DrawInfo{user: u, info: b}
+		message := Message{}
+		if err := json.Unmarshal(b, &message); err != nil {
+			log.Println(err)
+			continue
+		}
+		message.user = u
+		u.room.messageCh <- &message
 	}
 }
 

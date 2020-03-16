@@ -1,13 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"log"
 	"sync"
 )
 
-type DrawInfo struct {
+type Message struct {
+	Method string      `json:"method"`
+	Data   interface{} `json:"data"`
+
 	user *User
-	info []byte
 }
 
 var rooms = RoomMap{}
@@ -41,7 +45,7 @@ type Room struct {
 	users        map[*User]bool
 	registerCh   chan *User
 	unregisterCh chan *User
-	broadcastCh  chan *DrawInfo
+	messageCh    chan *Message
 }
 
 func newRoom(id int) *Room {
@@ -50,7 +54,7 @@ func newRoom(id int) *Room {
 		users:        make(map[*User]bool),
 		registerCh:   make(chan *User),
 		unregisterCh: make(chan *User),
-		broadcastCh:  make(chan *DrawInfo),
+		messageCh:    make(chan *Message),
 	}
 	go room.run()
 	return room
@@ -61,6 +65,10 @@ loop:
 	for {
 		select {
 		case user := <-r.registerCh:
+			user.initialized = false
+			if len(r.users) == 0 {
+				user.initialized = true
+			}
 			r.users[user] = true
 
 		case user := <-r.unregisterCh:
@@ -74,19 +82,54 @@ loop:
 				break loop
 			}
 
-		case drawInfo := <-r.broadcastCh:
-			for user := range r.users {
-				if user == drawInfo.user {
-					continue
+		case message := <-r.messageCh:
+			b, err := json.Marshal(message)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+
+			switch message.Method {
+			case "draw", "clear":
+				for user := range r.users {
+					if !user.initialized || user == message.user {
+						continue
+					}
+					r.sendToChan(user, b)
 				}
-				select {
-				case user.sendCh <- drawInfo.info:
-				default:
-					delete(r.users, user)
-					close(user.sendCh)
+			case "history-request":
+				for user := range r.users {
+					if !user.initialized {
+						continue
+					}
+					if ok := r.sendToChan(user, b); ok {
+						break
+					}
 				}
+			case "history-response":
+				for user := range r.users {
+					if user.initialized {
+						continue
+					}
+					if ok := r.sendToChan(user, b); ok {
+						user.initialized = true
+					}
+				}
+			default:
+				log.Println("unknown method:", message)
 			}
 
 		}
+	}
+}
+
+func (r *Room) sendToChan(user *User, data []byte) bool {
+	select {
+	case user.sendCh <- data:
+		return true
+	default:
+		delete(r.users, user)
+		close(user.sendCh)
+		return false
 	}
 }
