@@ -17,6 +17,14 @@ type User struct {
 	initialized bool
 }
 
+func newUser(room *Room, conn *websocket.Conn) *User {
+	return &User{
+		room:   room,
+		conn:   conn,
+		sendCh: make(chan []byte, 256),
+	}
+}
+
 func (u *User) readPump() {
 	defer func() {
 		u.room.unregisterCh <- u
@@ -56,7 +64,7 @@ func (u *User) writePump() {
 
 var upgrader = websocket.Upgrader{}
 
-func serveWs(w http.ResponseWriter, r *http.Request) {
+func serveWs(rooms *RoomMap, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -64,22 +72,21 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := r.URL.Query()
-	roomIDStr := query.Get("r")
-	roomID, err := strconv.Atoi(roomIDStr)
+	roomID, err := strconv.Atoi(query.Get("r"))
 	if err != nil {
 		return
 	}
 	room, err := rooms.Load(roomID)
-	if err != nil {
+	if err == ErrRoomNotFound {
 		room = newRoom(roomID)
+		go func() {
+			room.run()
+			rooms.Delete(roomID)
+		}()
 		rooms.Store(roomID, room)
 	}
 
-	u := &User{
-		room:   room,
-		conn:   conn,
-		sendCh: make(chan []byte, 256),
-	}
+	u := newUser(room, conn)
 	room.registerCh <- u
 
 	go u.readPump()

@@ -7,14 +7,10 @@ import (
 	"sync"
 )
 
-type Message struct {
-	Method string      `json:"method"`
-	Data   interface{} `json:"data"`
-
-	user *User
-}
-
-var rooms = RoomMap{}
+var (
+	ErrRoomNotFound    = errors.New("room not found")
+	ErrInvalidRoomType = errors.New("invalid room type")
+)
 
 type RoomMap struct {
 	m sync.Map
@@ -27,11 +23,11 @@ func (m *RoomMap) Store(key int, value *Room) {
 func (m *RoomMap) Load(key int) (*Room, error) {
 	v, ok := m.m.Load(key)
 	if !ok {
-		return nil, errors.New("not found")
+		return nil, ErrRoomNotFound
 	}
 	r, ok := v.(*Room)
 	if !ok {
-		return nil, errors.New("invalid type")
+		return nil, ErrInvalidRoomType
 	}
 	return r, nil
 }
@@ -49,15 +45,13 @@ type Room struct {
 }
 
 func newRoom(id int) *Room {
-	room := &Room{
+	return &Room{
 		id:           id,
 		users:        make(map[*User]bool),
 		registerCh:   make(chan *User),
 		unregisterCh: make(chan *User),
 		messageCh:    make(chan *Message),
 	}
-	go room.run()
-	return room
 }
 
 func (r *Room) run() {
@@ -78,7 +72,6 @@ loop:
 			delete(r.users, user)
 			close(user.sendCh)
 			if len(r.users) == 0 {
-				rooms.Delete(r.id)
 				break loop
 			}
 
