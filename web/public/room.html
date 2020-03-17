@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <meta charset="utf-8" />
+  <title>Kohpen</title>
+  <link rel="stylesheet" type="text/css" href="css/main.css" />
+  <script src="js/room.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+    }
+    canvas {
+      border: 1px solid black;
+    }
+    #canvas-container {
+      flex-shrink: 0;
+      align-self: center;
+    }
+    #color-palette {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .color-palette-button {
+      display: inline-block;
+      width: 2em;
+      height: 2em;
+      margin: 0.5em;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .color-palette-button-text {
+      display: inline-block;
+      height: 2em;
+      line-height: 2em;
+      margin: 0.5em;
+      padding: 0px 0.5em;
+      flex-shrink: 0;
+      background-color: gray;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="vertical">
+    <header>
+      <h1><a href="/" class="header-link">Kohpen</a></h1>
+    </header>
+
+    <div>
+      <h2 style="display: inline-block;">
+        Room:<span id="room-id"></span>
+      </h2>
+      <button id="change-room-btn" class="styled-link">Change room</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="color-palette"></div>
+
+    <footer></footer>
+  </div>
+</body>
+</html>

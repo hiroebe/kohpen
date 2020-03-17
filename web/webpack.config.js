@@ -1,11 +1,11 @@
 module.exports = {
     mode: 'development',
     entry: {
-        'main': `${__dirname}/src/main.ts`,
+        'room': `${__dirname}/src/room.ts`,
         'viewer': `${__dirname}/src/viewer.ts`,
     },
     output: {
-        path: `${__dirname}/public`,
+        path: `${__dirname}/public/js`,
         filename: '[name].js',
     },
     module: {

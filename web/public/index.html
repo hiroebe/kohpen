@@ -4,40 +4,31 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta charset="utf-8" />
   <title>Kohpen</title>
-	<link rel='stylesheet' type="text/css" href="main.css" />
-  <script src="main.js"></script>
+  <link rel="stylesheet" type="text/css" href="css/main.css" />
   <style>
-    canvas {
-      border: 1px solid black;
-    }
-    .color-palette-button {
-      display: inline-block;
-      width: 2em;
-      height: 2em;
-      margin: 0.5em;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    #color-palette {
-      width: 100%;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
+    .entry {
+      padding: 5em 0px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <div class="vertical">
-
-    <h1>
-      Room:<span id="room-id"></span>
-      <button id="change-room-btn">Go to another room</button>
-    </h1>
-
-    <div id="canvas-container"></div>
-
-    <div id="color-palette"></div>
-
+  <header>
+    <h1><a href="/" class="header-link">Kohpen</a></h1>
+  </header>
+  <div class="entry">
+    <a href="room.html" class="styled-link">Create new room</a>
+  </div>
+  <hr>
+  <div class="entry">
+    <form action="room.html">
+      <input name="r" type="number" placeholder="Room ID"></input>
+      <button type="submit" class="styled-link">Enter room</button>
+    </form>
+  </div>
+  <hr>
+  <div class="entry">
+    <a href="viewer.html" class="styled-link">View room</a>
   </div>
 </body>
 </html>

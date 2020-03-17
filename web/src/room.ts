@@ -22,7 +22,7 @@ const moveToRoom = (roomId: string) => {
 };
 
 const setupDialog = () => {
-    const dialog = new DialogWithInput('Room ID: ', 'Go', 'Cancel');
+    const dialog = new DialogWithInput('Room ID:', 'Go', 'Cancel');
     dialog.input.type = 'number';
     dialog.okButton.addEventListener('click', () => {
         moveToRoom(dialog.input.value);
@@ -45,12 +45,27 @@ const setupColorPalette = (syncCanvas: SyncCanvas) => {
         container.appendChild(div);
     }
 
-    const clearButton = document.createElement('button');
+    const clearButton = document.createElement('div');
+    clearButton.className = 'color-palette-button-text';
     clearButton.textContent = 'Clear';
     clearButton.addEventListener('click', () => {
         syncCanvas.clearCanvas();
     });
     container.appendChild(clearButton);
+};
+
+const calcCanvasSize = (): number => {
+    const canvasContainer = document.getElementById('canvas-container');
+
+    canvasContainer.style.flexGrow = '1';
+    canvasContainer.style.alignSelf = 'stretch';
+
+    const { clientWidth, clientHeight } = canvasContainer;
+
+    canvasContainer.style.flexGrow = '0';
+    canvasContainer.style.alignSelf = 'center';
+
+    return Math.min(clientWidth * 0.9, clientHeight * 0.9);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -65,8 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('room-id').textContent = roomId;
 
-    const canvasSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8);
-    const syncCanvas = new SyncCanvas(roomId, canvasSize, true);
+    const syncCanvas = new SyncCanvas(roomId, calcCanvasSize(), true);
     document.getElementById('canvas-container').appendChild(syncCanvas.element);
 
     setupDialog();
