@@ -1,19 +1,19 @@
 import dialogPolyfill from 'dialog-polyfill';
 import 'dialog-polyfill/dist/dialog-polyfill.css';
 
-export default class DialogWithInput extends HTMLDialogElement {
+export default class DialogWithInput {
+    private _dialog: HTMLDialogElement;
     private _input: HTMLInputElement;
     private _okButton: HTMLButtonElement;
     private _cancelButton: HTMLButtonElement;
 
     constructor(placeholder: string, okButtonText: string, cancelButtonText: string) {
-        super();
-
-        dialogPolyfill.registerDialog(this);
+        this._dialog = document.createElement('dialog');
+        dialogPolyfill.registerDialog(this._dialog);
 
         const form = document.createElement('form');
         form.method = 'dialog';
-        this.appendChild(form);
+        this._dialog.appendChild(form);
 
         this._input = document.createElement('input');
         this._input.placeholder = placeholder;
@@ -29,11 +29,11 @@ export default class DialogWithInput extends HTMLDialogElement {
         this._cancelButton.textContent = cancelButtonText;
         form.appendChild(this._cancelButton);
 
-        this.addEventListener('close', () => {
+        this._dialog.addEventListener('close', () => {
             this._input.value = '';
         });
 
-        document.body.appendChild(this);
+        document.body.appendChild(this._dialog);
     }
 
     get input(): HTMLInputElement {
@@ -47,6 +47,16 @@ export default class DialogWithInput extends HTMLDialogElement {
     get cancelButton(): HTMLButtonElement {
         return this._cancelButton;
     }
-}
 
-customElements.define('dialog-with-input', DialogWithInput, { extends: 'dialog' });
+    showModal() {
+        this._dialog.showModal();
+    }
+
+    close(returnValue?: string) {
+        if (returnValue) {
+            this._dialog.close(returnValue);
+        } else {
+            this._dialog.close();
+        }
+    }
+}
