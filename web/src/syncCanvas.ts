@@ -148,7 +148,6 @@ export default class SyncCanvas {
                 break;
 
             case 'history-request':
-                this.flushSendQueue();
                 this.sendMessage({
                     method: 'history-response',
                     data: this.drawHistory,
@@ -183,19 +182,16 @@ export default class SyncCanvas {
     }
 
     private flushSendQueue() {
-        const drawInfo: DrawInfo = {
-            color: this.color,
-            paths: this.sendQueue,
-        };
+        if (!this.sendQueue) {
+            return;
+        }
         this.sendMessage({
             method: 'draw',
-            data: drawInfo,
+            data: {
+                color: this.color,
+                paths: this.sendQueue,
+            },
         });
-        if (this.drawHistory.length > 0 && this.color === this.drawHistory[this.drawHistory.length - 1].color) {
-            this.drawHistory[this.drawHistory.length - 1].paths.push(...drawInfo.paths);
-        } else {
-            this.drawHistory.push(drawInfo);
-        }
         this.sendQueue = [];
     }
 
@@ -207,6 +203,17 @@ export default class SyncCanvas {
             this.ctx.lineTo(end.x * this.canvasSize, end.y * this.canvasSize);
         }
         this.ctx.stroke();
+
+        this.addToHistory(info);
+    }
+
+    private addToHistory(info: DrawInfo) {
+        const last = this.drawHistory.length - 1;
+        if (last >= 0 && this.color === this.drawHistory[last].color) {
+            this.drawHistory[last].paths.push(...info.paths);
+        } else {
+            this.drawHistory.push(info);
+        }
     }
 
     private clear() {
