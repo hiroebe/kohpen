@@ -9,6 +9,7 @@ const colors = [
     '#ffff00',
     '#ff00ff',
     '#00ffff',
+    '#ffffff',
 ];
 
 const generateRoomId = (): number => {
@@ -39,6 +40,7 @@ const setupColorPalette = (syncCanvas: SyncCanvas) => {
         const div = document.createElement('div');
         div.className = 'color-palette-button';
         div.style.backgroundColor = color;
+        div.style.border = '1px solid black';
         div.addEventListener('click', () => {
             syncCanvas.setColor(color);
         });
