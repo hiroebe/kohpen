@@ -209,7 +209,7 @@ export default class SyncCanvas {
 
     private addToHistory(info: DrawInfo) {
         const last = this.drawHistory.length - 1;
-        if (last >= 0 && this.color === this.drawHistory[last].color) {
+        if (last >= 0 && info.color === this.drawHistory[last].color) {
             this.drawHistory[last].paths.push(...info.paths);
         } else {
             this.drawHistory.push(info);
